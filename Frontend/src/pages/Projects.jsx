@@ -32,11 +32,13 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`));
 }
 
-function safeLink(value) {
-  if (!value) return null;
-  const first = value.split(/[\n,]/).map((item) => item.trim()).find(Boolean);
-  if (!first) return null;
-  return /^https?:\/\//i.test(first) ? first : `https://${first}`;
+function deployedLinks(value) {
+  if (!value) return [];
+  return String(value)
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => ({ label: item, href: /^https?:\/\//i.test(item) ? item : `https://${item}` }));
 }
 
 function Metric({ icon: Icon, label, value, detail, tone = "blue" }) {
@@ -49,9 +51,18 @@ function formFromProject(project, responsibleEmployeeId) {
   return {
     ...emptyForm,
     ...project,
+    project_name: project.project_name || "",
+    project_category: project.project_category || "",
+    project_description: project.project_description || "",
+    project_type: project.project_type || "",
     responsible_employee_id: project.responsible_employee_id || "",
+    current_status: project.current_status || "Planning",
     progress_percentage: Number(project.progress_percentage) || 0,
+    current_progress_update: project.current_progress_update || "",
+    next_activity: project.next_activity || "",
     target_date: project.target_date || "",
+    blockers: project.blockers || "",
+    related_links: project.related_links || "",
   };
 }
 
@@ -59,7 +70,7 @@ function ProjectForm({ initialProject, options, responsibleEmployeeId, submittin
   const [form, setForm] = useState(() => formFromProject(initialProject, responsibleEmployeeId));
   const editing = Boolean(initialProject);
   const update = (field) => (event) => setForm((current) => ({ ...current, [field]: event.target.value }));
-  const nullable = (value) => value.trim() || null;
+  const nullable = (value) => String(value ?? "").trim() || null;
   function submit(event) {
     event.preventDefault();
     onSubmit({
@@ -89,15 +100,15 @@ function ProjectForm({ initialProject, options, responsibleEmployeeId, submittin
       <label className="field-label">Current progress<textarea className="field-input min-h-24 resize-y" value={form.current_progress_update} onChange={update("current_progress_update")} /></label>
       <label className="field-label">Next activity<textarea className="field-input min-h-24 resize-y" value={form.next_activity} onChange={update("next_activity")} /></label>
       <label className="field-label">Blockers<textarea className="field-input min-h-24 resize-y" value={form.blockers} onChange={update("blockers")} /></label>
-      <label className="field-label">Related links<textarea className="field-input min-h-24 resize-y" value={form.related_links} onChange={update("related_links")} placeholder="One or more project URLs" /></label>
+      <label className="field-label">Deployed links<textarea className="field-input min-h-24 resize-y" value={form.related_links} onChange={update("related_links")} placeholder="One or more deployed project URLs" /></label>
     </div>
-    <button className="primary-button w-full justify-center" disabled={submitting}>{submitting ? <LoaderCircle className="animate-spin" size={17} /> : <Check size={17} />}{submitting ? "Saving..." : editing ? "Update project" : "Save project"}</button>
+    <button type="submit" className="primary-button w-full justify-center" disabled={submitting}>{submitting ? <LoaderCircle className="animate-spin" size={17} /> : <Check size={17} />}{submitting ? "Saving..." : editing ? "Update project" : "Save project"}</button>
   </form>;
 }
 
 function ProjectCard({ project, canManage, onEdit, onDelete, onNavigateTasks }) {
   const progress = Math.max(0, Math.min(100, Number(project.progress_percentage) || 0));
-  const link = safeLink(project.related_links);
+  const links = deployedLinks(project.related_links);
   return (
     <article
       onClick={onNavigateTasks}
@@ -220,6 +231,29 @@ function ProjectCard({ project, canManage, onEdit, onDelete, onNavigateTasks }) 
         <div className="flex items-center gap-2 text-slate-500"><UserRound size={15} className="text-[#075fae]" /><span>{project.responsible_employee_name || "Unassigned"}</span></div>
         <div className="flex items-center gap-2 text-slate-500"><CalendarDays size={15} className="text-slate-400" /><span>{formatDate(project.target_date)}</span></div>
         <div className="flex items-start gap-2 text-slate-500"><Target size={15} className="mt-0.5 shrink-0 text-[#20a91e]" /><span className="line-clamp-2">{project.next_activity || "Next activity not defined"}</span></div>
+        {links.length > 0 && (
+          <div className="flex items-start gap-2 text-slate-500">
+            <Link2 size={15} className="mt-0.5 shrink-0 text-[#075fae]" />
+            <div className="min-w-0">
+              <span className="font-bold text-slate-600">Deployed Links: </span>
+              {links.map((link, index) => (
+                <span key={`${link.href}-${index}`}>
+                  {index > 0 && <span className="text-slate-300"> · </span>}
+                  <a
+                    className="break-all font-semibold text-[#075fae] hover:text-[#0871c6] hover:underline"
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {link.label}
+                    <ArrowUpRight size={11} className="ml-0.5 inline" />
+                  </a>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {project.blockers && <div className="flex items-start gap-2 rounded-2xl bg-rose-50 p-3 text-rose-700"><AlertTriangle size={15} className="mt-0.5 shrink-0" /><span className="line-clamp-2">{project.blockers}</span></div>}
       </div>
       <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-bold">
@@ -228,19 +262,6 @@ function ProjectCard({ project, canManage, onEdit, onDelete, onNavigateTasks }) 
           <span>View task section</span>
           <ArrowRight size={13} className="transition group-hover:translate-x-1" />
         </span>
-        {link && (
-          <a
-            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-[#075fae]"
-            href={link}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Link2 size={13} />
-            <span>Resource</span>
-            <ArrowUpRight size={12} />
-          </a>
-        )}
       </div>
     </article>
   );
