@@ -10,7 +10,6 @@ class ProjectCreate(BaseModel):
     project_description: str | None = None
     project_type: str | None = Field(default=None, max_length=100)
     responsible_employee_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     current_status: str = Field(default="Planning", max_length=50)
     progress_percentage: Decimal = Field(default=Decimal("0"), ge=0, le=100)
     current_progress_update: str | None = None
@@ -26,7 +25,6 @@ class ProjectUpdate(BaseModel):
     project_description: str | None = None
     project_type: str | None = Field(default=None, max_length=100)
     responsible_employee_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     current_status: str | None = Field(default=None, max_length=50)
     progress_percentage: Decimal | None = Field(default=None, ge=0, le=100)
     current_progress_update: str | None = None
@@ -38,7 +36,6 @@ class ProjectUpdate(BaseModel):
 
 class ProjectOptionsResponse(BaseModel):
     employees: list[dict]
-    pods: list[dict]
 
 
 class StageTaskInfo(BaseModel):
@@ -70,7 +67,6 @@ class ProjectResponse(BaseModel):
     project_description: str | None = None
     project_type: str | None = None
     responsible_employee_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     current_status: str | None = None
     progress_percentage: Decimal = Decimal("0")
     current_progress_update: str | None = None
@@ -79,7 +75,6 @@ class ProjectResponse(BaseModel):
     blockers: str | None = None
     related_links: str | None = None
     responsible_employee_name: str | None = None
-    assigned_intern_pod_name: str | None = None
     current_running_stage: CurrentRunningStage | None = None
 
     model_config = ConfigDict(from_attributes=True)

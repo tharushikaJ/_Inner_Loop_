@@ -5,7 +5,6 @@ export const workspaceApi = {
   projects: () => apiRequest("/projects"),
   tasks: () => apiRequest("/tasks"),
   meetings: () => apiRequest("/meetings"),
-  internPods: () => apiRequest("/intern-pods"),
   meetingRooms: () => apiRequest("/meeting-rooms"),
   reportSummary: () => apiRequest("/reports/summary"),
   users: () => apiRequest("/users"),

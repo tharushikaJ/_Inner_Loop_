@@ -16,7 +16,6 @@ class Project(Base):
     project_description: Mapped[str | None] = mapped_column(Text)
     project_type: Mapped[str | None] = mapped_column(String(100))
     responsible_employee_id: Mapped[int | None] = mapped_column(BigInteger)
-    assigned_intern_pod_id: Mapped[int | None] = mapped_column(BigInteger)
     current_status: Mapped[str | None] = mapped_column(String(50))
     progress_percentage: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0)
     current_progress_update: Mapped[str | None] = mapped_column(Text)

@@ -5,7 +5,6 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models.intern_pod import InternPod
 from ..models.project import Project
 from ..models.task import Task
 from ..utils.permissions import require_roles
@@ -22,5 +21,4 @@ def report_summary(_user=Depends(employee_or_management), db: Session = Depends(
         "projects": db.query(Project).count(),
         "open_tasks": db.query(Task).filter(open_task).count(),
         "overdue_tasks": db.query(Task).filter(open_task, Task.due_date < date.today()).count(),
-        "intern_pods": db.query(InternPod).count(),
     }

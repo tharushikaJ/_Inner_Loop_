@@ -8,7 +8,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.models.intern_pod import InternPod, InternPodMember
 from app.models.meeting import Meeting, MeetingAttendee
 from app.models.project import Project
 from app.models.room import MeetingRoom
@@ -187,24 +186,16 @@ def seed_rbac_workspace():
         intern = db.query(User).filter(User.email == "intern@example.com").one()
         other_intern = db.query(User).filter(User.email == "intern2@example.com").one()
         employee = db.query(User).filter(User.email == "employee@example.com").one()
-        first_pod = InternPod(pod_name="First Pod", status="active", progress_percentage=50)
-        other_pod = InternPod(pod_name="Other Pod", status="active", progress_percentage=25)
-        db.add_all([first_pod, other_pod])
-        db.flush()
-
-        direct_project = Project(project_name="Pod One Project", responsible_employee_id=employee.id, assigned_intern_pod_id=first_pod.id, current_status="active", progress_percentage=60)
-        other_project = Project(project_name="Pod Two Project", assigned_intern_pod_id=other_pod.id, current_status="blocked", progress_percentage=20)
+        direct_project = Project(project_name="Assigned Project", responsible_employee_id=employee.id, current_status="active", progress_percentage=60)
+        other_project = Project(project_name="Other Project", current_status="blocked", progress_percentage=20)
         reverse_project = Project(project_name="Reverse Assigned Project", current_status="active", progress_percentage=40)
         db.add_all([direct_project, other_project, reverse_project])
         db.flush()
-        first_pod.assigned_project_id = reverse_project.id
 
         db.add_all([
-            InternPodMember(pod_id=first_pod.id, intern_user_id=intern.id, status="active"),
-            InternPodMember(pod_id=other_pod.id, intern_user_id=other_intern.id, status="active"),
-            Task(task_title="Direct Task", assigned_user_id=intern.id, status="in progress"),
-            Task(task_title="Pod Task", assigned_intern_pod_id=first_pod.id, status="todo"),
-            Task(task_title="Other Intern Task", assigned_user_id=other_intern.id, assigned_intern_pod_id=other_pod.id, status="todo"),
+            Task(task_title="Direct Task", project_id=direct_project.id, assigned_user_id=intern.id, status="in progress"),
+            Task(task_title="Reverse Project Task", project_id=reverse_project.id, assigned_user_id=intern.id, status="todo"),
+            Task(task_title="Other Intern Task", project_id=other_project.id, assigned_user_id=other_intern.id, status="todo"),
             Task(task_title="Employee Task", assigned_user_id=employee.id, status="todo"),
             Task(task_title="Responsible Project Task", project_id=direct_project.id, status="in progress"),
             Task(task_title="Unassigned Task", status="todo"),
@@ -218,11 +209,11 @@ def test_intern_data_is_sql_scoped_and_privileged_routes_are_forbidden():
 
     projects = client.get("/api/projects")
     assert projects.status_code == 200
-    assert {item["project_name"] for item in projects.json()} == {"Pod One Project", "Reverse Assigned Project"}
+    assert {item["project_name"] for item in projects.json()} == {"Assigned Project", "Reverse Assigned Project"}
 
     tasks = client.get("/api/tasks")
     assert tasks.status_code == 200
-    assert {item["task_title"] for item in tasks.json()} == {"Direct Task", "Pod Task", "Responsible Project Task"}
+    assert {item["task_title"] for item in tasks.json()} == {"Direct Task", "Reverse Project Task", "Responsible Project Task"}
 
     dashboard = client.get("/api/dashboard")
     assert dashboard.status_code == 200
@@ -233,7 +224,7 @@ def test_intern_data_is_sql_scoped_and_privileged_routes_are_forbidden():
     assert client.get("/api/meetings").status_code == 200
     assert client.get("/api/meetings/options").status_code == 403
 
-    for path in ("/api/intern-pods", "/api/meeting-rooms", "/api/reports/summary", "/api/users", "/api/settings", "/api/audit-logs"):
+    for path in ("/api/meeting-rooms", "/api/reports/summary", "/api/users", "/api/settings", "/api/audit-logs"):
         assert client.get(path).status_code == 403
 
 
@@ -337,7 +328,7 @@ def test_intern_can_only_update_directly_assigned_tasks_in_visible_projects():
     with TestingSession() as db:
         intern = db.query(User).filter(User.email == "intern@example.com").one()
         reverse_project = db.query(Project).filter(Project.project_name == "Reverse Assigned Project").one()
-        other_project = db.query(Project).filter(Project.project_name == "Pod Two Project").one()
+        other_project = db.query(Project).filter(Project.project_name == "Other Project").one()
         reverse_task = Task(task_title="Read-only Project Task", project_id=reverse_project.id, status="To do")
         assigned_reverse_task = Task(
             task_title="Assigned Reverse Project Task",
@@ -356,7 +347,7 @@ def test_intern_can_only_update_directly_assigned_tasks_in_visible_projects():
     visible_projects = {item["project_name"] for item in client.get("/api/projects").json()}
     visible_tasks = {item["task_title"] for item in client.get("/api/tasks").json()}
 
-    assert visible_projects == {"Pod One Project", "Reverse Assigned Project"}
+    assert visible_projects == {"Assigned Project", "Reverse Assigned Project"}
     assert "Read-only Project Task" in visible_tasks
     assert "Assigned Reverse Project Task" in visible_tasks
     assert "Other Project Task" not in visible_tasks
@@ -383,10 +374,10 @@ def test_employee_can_use_operational_routes_but_not_administration():
     seed_rbac_workspace()
     assert login("employee@example.com").status_code == 200
 
-    for path in ("/api/dashboard", "/api/projects", "/api/tasks", "/api/meetings", "/api/intern-pods", "/api/meeting-rooms", "/api/reports/summary"):
+    for path in ("/api/dashboard", "/api/projects", "/api/tasks", "/api/meetings", "/api/meeting-rooms", "/api/reports/summary"):
         assert client.get(path).status_code == 200
-    assert {item["project_name"] for item in client.get("/api/projects").json()} == {"Pod One Project"}
-    assert {item["task_title"] for item in client.get("/api/tasks").json()} == {"Employee Task", "Responsible Project Task"}
+    assert {item["project_name"] for item in client.get("/api/projects").json()} == {"Assigned Project"}
+    assert {item["task_title"] for item in client.get("/api/tasks").json()} == {"Direct Task", "Employee Task", "Responsible Project Task"}
     for path in ("/api/users", "/api/settings", "/api/audit-logs"):
         assert client.get(path).status_code == 403
 
@@ -395,7 +386,7 @@ def test_management_can_use_every_rbac_route():
     seed_rbac_workspace()
     assert login("management@example.com").status_code == 200
 
-    for path in ("/api/dashboard", "/api/projects", "/api/tasks", "/api/meetings", "/api/intern-pods", "/api/meeting-rooms", "/api/reports/summary", "/api/users", "/api/settings", "/api/audit-logs"):
+    for path in ("/api/dashboard", "/api/projects", "/api/tasks", "/api/meetings", "/api/meeting-rooms", "/api/reports/summary", "/api/users", "/api/settings", "/api/audit-logs"):
         assert client.get(path).status_code == 200
     metrics = client.get("/api/dashboard").json()["metrics"]
     assert metrics["active_projects"] == 2
@@ -513,18 +504,14 @@ def test_employee_can_create_projects_and_tasks_that_persist_with_existing_visib
     assert task.json()["assigned_user_name"] == "Esha Employee"
 
     intern_id = next(item["id"] for item in task_options.json()["interns"] if item["name"] == "Ishan Intern")
-    pod_id = next(item["id"] for item in task_options.json()["pods"] if item["pod_name"] == "First Pod")
     intern_task = client.post("/api/tasks", json={
         "task_title": "Intern-selected Delivery Task",
         "project_id": project_id,
         "assigned_user_id": intern_id,
-        "assigned_intern_pod_id": pod_id,
     })
     assert intern_task.status_code == 201
     assert intern_task.json()["assigned_user_id"] == intern_id
     assert intern_task.json()["assigned_user_name"] == "Ishan Intern"
-    assert intern_task.json()["assigned_intern_pod_id"] == pod_id
-    assert intern_task.json()["assigned_intern_pod_name"] == "First Pod"
 
     with TestingSession() as db:
         unrelated_intern_id = db.query(User.id).filter(User.email == "intern2@example.com").scalar()
@@ -541,7 +528,7 @@ def test_employee_can_create_projects_and_tasks_that_persist_with_existing_visib
     employee_dashboard = client.get("/api/dashboard").json()
     assert employee_dashboard["metrics"]["projects"] == 2
     assert employee_dashboard["metrics"]["active_projects"] == 2
-    assert employee_dashboard["metrics"]["open_tasks"] == 4
+    assert employee_dashboard["metrics"]["open_tasks"] == 5
     assert any(item["project_name"] == "Persistent Delivery Project" for item in employee_dashboard["projects"])
     persisted_task = next(item for item in employee_dashboard["tasks"] if item["task_title"] == "Persistent Delivery Task")
     assert persisted_task["project_name"] == "Persistent Delivery Project"
@@ -619,7 +606,7 @@ def test_employee_can_update_and_delete_an_owned_project_and_management_cannot_m
 def test_project_deletion_is_blocked_when_related_records_would_be_lost():
     seed_rbac_workspace()
     assert login("employee@example.com").status_code == 200
-    owned_project = next(item for item in client.get("/api/projects").json() if item["project_name"] == "Pod One Project")
+    owned_project = next(item for item in client.get("/api/projects").json() if item["project_name"] == "Assigned Project")
 
     response = client.delete(f"/api/projects/{owned_project['id']}")
 
@@ -628,22 +615,15 @@ def test_project_deletion_is_blocked_when_related_records_would_be_lost():
     assert any(item["id"] == owned_project["id"] for item in client.get("/api/projects").json())
 
 
-def test_management_has_read_only_access_to_pods_meetings_and_rooms():
+def test_management_has_read_only_access_to_meetings_and_rooms():
     seed_rbac_workspace()
     assert login("management@example.com").status_code == 200
 
-    pods = client.get("/api/intern-pods")
-    assert pods.status_code == 200
-    assert client.get("/api/intern-pods/mentors").status_code == 200
-    interns = client.get("/api/intern-pods/interns")
-    assert interns.status_code == 200
     assert client.get("/api/meetings").status_code == 200
     assert client.get("/api/meetings/options").status_code == 200
     assert client.get("/api/meeting-rooms").status_code == 200
     assert client.get("/api/meeting-rooms/calendar").status_code == 200
 
-    pod_id = pods.json()[0]["id"]
-    intern_id = interns.json()[0]["id"]
     meeting_payload = {
         "meeting_title": "Forbidden meeting",
         "start_datetime": "2032-01-10T09:00:00",
@@ -651,11 +631,6 @@ def test_management_has_read_only_access_to_pods_meetings_and_rooms():
     }
     room_payload = {"room_name": "Forbidden room"}
 
-    assert client.post("/api/intern-pods", json={"pod_name": "Forbidden pod"}).status_code == 403
-    assert client.put(f"/api/intern-pods/{pod_id}", json={"pod_name": "Forbidden pod"}).status_code == 403
-    assert client.delete(f"/api/intern-pods/{pod_id}").status_code == 403
-    assert client.post(f"/api/intern-pods/{pod_id}/members", json={"intern_user_id": intern_id}).status_code == 403
-    assert client.delete(f"/api/intern-pods/{pod_id}/members/1").status_code == 403
     assert client.post("/api/meetings", json=meeting_payload).status_code == 403
     assert client.put("/api/meetings/1", json=meeting_payload).status_code == 403
     assert client.delete("/api/meetings/1").status_code == 403
@@ -756,88 +731,4 @@ def test_management_updates_supervisors_and_role_change_clears_assignments():
     updated_intern = next(user for user in users if user["id"] == intern["id"])
     assert updated_intern["assigned_supervisor_id"] is None
     assert updated_intern["assigned_supervisor_name"] is None
-
-
-def test_employee_pod_member_options_are_limited_to_assigned_interns():
-    seed_rbac_workspace()
-    with TestingSession() as db:
-        supervisor_id = db.query(User).filter(User.email == "employee@example.com").one().id
-        unassigned_intern_id = db.query(User).filter(User.email == "intern@example.com").one().id
-
-    other_supervisor = register({
-        "name": "Other Supervisor",
-        "email": "other-supervisor@example.com",
-        "password": "Password123",
-        "role": "employee",
-        "designation": "Engineer",
-        "department": "Digital Lab",
-    }).json()["user"]
-    assigned_intern = register({
-        "name": "Assigned Pod Intern",
-        "email": "assigned-pod-intern@example.com",
-        "password": "Password123",
-        "role": "intern",
-        "assigned_supervisor_id": supervisor_id,
-    }).json()["user"]
-    other_intern = register({
-        "name": "Other Supervisor Intern",
-        "email": "other-supervisor-intern@example.com",
-        "password": "Password123",
-        "role": "intern",
-        "assigned_supervisor_id": other_supervisor["id"],
-    }).json()["user"]
-
-    assert login("employee@example.com").status_code == 200
-    options = client.get("/api/intern-pods/interns")
-    assert options.status_code == 200
-    assert [(intern["id"], intern["name"]) for intern in options.json()] == [
-        (assigned_intern["id"], "Assigned Pod Intern")
-    ]
-
-    pod_id = client.get("/api/intern-pods").json()[0]["id"]
-    assert client.post(
-        f"/api/intern-pods/{pod_id}/members",
-        json={"intern_user_id": assigned_intern["id"]},
-    ).status_code == 201
-    assert client.post(
-        f"/api/intern-pods/{pod_id}/members",
-        json={"intern_user_id": other_intern["id"]},
-    ).status_code == 403
-    assert client.post(
-        f"/api/intern-pods/{pod_id}/members",
-        json={"intern_user_id": unassigned_intern_id},
-    ).status_code == 403
-
-    assert login("management@example.com").status_code == 200
-    management_intern_ids = {intern["id"] for intern in client.get("/api/intern-pods/interns").json()}
-    assert assigned_intern["id"] in management_intern_ids
-    assert other_intern["id"] in management_intern_ids
-    assert unassigned_intern_id in management_intern_ids
-
-
-def test_pod_mentor_is_authenticated_employee_and_cannot_be_edited():
-    seed_rbac_workspace()
-    with TestingSession() as db:
-        employee_id = db.query(User).filter(User.email == "employee@example.com").one().id
-        other_user_id = db.query(User).filter(User.email == "management@example.com").one().id
-
-    assert login("employee@example.com").status_code == 200
-    created = client.post("/api/intern-pods", json={
-        "pod_name": "Authenticated Mentor Pod",
-        "assigned_feature_module": "Supervisor assignment",
-        "mentor_employee_id": other_user_id,
-    })
-    assert created.status_code == 201
-    assert created.json()["mentor_employee_id"] == employee_id
-    assert created.json()["status"] == "Active"
-    assert created.json()["start_date"] is None
-    assert created.json()["target_date"] is None
-    assert created.json()["progress_percentage"] == "0.00"
-
-    updated = client.put(f"/api/intern-pods/{created.json()['id']}", json={
-        "pod_name": "Renamed Mentor Pod",
-        "mentor_employee_id": other_user_id,
-    })
-    assert updated.status_code == 200
-    assert updated.json()["pod_name"] == "Renamed Mentor Pod"
-    assert updated.json()["mentor_employee_id"] == employee_id
+# End of test module.

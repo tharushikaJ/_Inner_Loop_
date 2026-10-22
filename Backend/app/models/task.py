@@ -32,11 +32,6 @@ class Task(Base):
         ForeignKey("users.id")
     )
 
-    assigned_intern_pod_id: Mapped[int | None] = mapped_column(
-        BigInteger,
-        ForeignKey("intern_pods.id", ondelete="SET NULL")
-    )
-
     priority: Mapped[str | None] = mapped_column(String(50))
 
     status: Mapped[str | None] = mapped_column(String(50))

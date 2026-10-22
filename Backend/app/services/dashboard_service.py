@@ -1,9 +1,8 @@
 from datetime import date, datetime
 
-from sqlalchemy import func, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from ..models.intern_pod import InternPod
 from ..models.meeting import Meeting, MeetingAttendee
 from ..models.user import User
 from .project_service import calculated_project_progress, project_data, projects_for_user
@@ -35,7 +34,6 @@ def dashboard_for_user(db: Session, user: User) -> dict:
         ]),
     }
     meetings = []
-    pod_progress = []
 
     if user.role in {"employee", "management"}:
         meeting_query = db.query(Meeting).filter(Meeting.start_datetime >= datetime.now())
@@ -49,18 +47,7 @@ def dashboard_for_user(db: Session, user: User) -> dict:
         metrics.update({
             "delayed_projects": len([project for project in projects if (project.current_status or "").lower() == "delayed"]),
             "blocked_projects": len([project for project in projects if (project.current_status or "").lower() == "blocked"]),
-            "active_pods": db.query(InternPod).filter(func.lower(func.coalesce(InternPod.status, "")) == "active").count(),
         })
-        pods = db.query(InternPod).order_by(InternPod.updated_at.desc()).limit(8).all()
-        pod_progress = [
-            {
-                "id": pod.id,
-                "name": pod.pod_name,
-                "status": pod.status,
-                "progress": float(pod.progress_percentage or 0),
-            }
-            for pod in pods
-        ]
 
     upcoming_deadlines = [
         task for task in tasks
@@ -73,6 +60,5 @@ def dashboard_for_user(db: Session, user: User) -> dict:
         "projects": [project_data(db, project) for project in projects[:5]],
         "tasks": [task_data(db, task) for task in tasks[:8]],
         "meetings": meetings,
-        "pod_progress": pod_progress,
         "upcoming_deadlines": [task_data(db, task) for task in upcoming_deadlines],
     }

@@ -37,7 +37,6 @@ const emptyTaskForm = {
   description: "",
   project_id: "",
   assigned_user_id: "",
-  assigned_intern_pod_id: "",
   priority: "Medium",
   status: "To do",
   due_date: "",
@@ -177,7 +176,6 @@ function TaskModal({ options, currentProjectId, projects, tasks, submitting, def
 
   function save(event) {
     event.preventDefault();
-    const chosenProject = projects?.find((p) => Number(p.id) === Number(form.project_id));
     onSubmit({
       ...form,
       task_title: form.task_title.trim(),
@@ -186,11 +184,6 @@ function TaskModal({ options, currentProjectId, projects, tasks, submitting, def
       parent_task_id: form.parent_task_id ? Number(form.parent_task_id) : null,
       project_id: form.project_id ? Number(form.project_id) : null,
       assigned_user_id: form.assigned_user_id ? Number(form.assigned_user_id) : null,
-      assigned_intern_pod_id: form.assigned_intern_pod_id
-        ? Number(form.assigned_intern_pod_id)
-        : chosenProject?.assigned_intern_pod_id
-        ? Number(chosenProject.assigned_intern_pod_id)
-        : null,
       due_date: form.due_date || null,
       progress_note: optional(form.progress_note),
       created_source: "Employee workspace",
@@ -737,7 +730,7 @@ export default function Tasks() {
   const [formOpen, setFormOpen] = useState(false);
   const [modalDefaults, setModalDefaults] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [options, setOptions] = useState({ projects: [], assignees: [], interns: [], pods: [] });
+  const [options, setOptions] = useState({ projects: [], assignees: [], interns: [] });
   const [collapsedSequences, setCollapsedSequences] = useState(new Set());
 
   function toggleSequence(seq) {

@@ -1,5 +1,3 @@
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 from .meeting_schema import MeetingResponse
@@ -13,5 +11,4 @@ class DashboardResponse(BaseModel):
     projects: list[ProjectResponse]
     tasks: list[TaskResponse]
     meetings: list[MeetingResponse] = Field(default_factory=list)
-    pod_progress: list[dict[str, Any]] = Field(default_factory=list)
     upcoming_deadlines: list[TaskResponse] = Field(default_factory=list)

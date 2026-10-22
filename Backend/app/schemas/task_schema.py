@@ -9,7 +9,6 @@ class TaskCreate(BaseModel):
     description: str | None = None
     project_id: int | None = None
     assigned_user_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     priority: str = Field(default="Medium", max_length=50)
     status: str = Field(default="To do", max_length=50)
     due_date: date | None = None
@@ -22,7 +21,6 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     project_id: int | None = None
     assigned_user_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     priority: str | None = Field(default=None, max_length=50)
     status: str | None = Field(default=None, max_length=50)
     due_date: date | None = None
@@ -36,7 +34,6 @@ class TaskOptionsResponse(BaseModel):
     projects: list[dict]
     assignees: list[dict]
     interns: list[dict]
-    pods: list[dict]
 
 
 class TaskSubmissionUpdate(BaseModel):
@@ -51,7 +48,6 @@ class TaskResponse(BaseModel):
     description: str | None = None
     project_id: int | None = None
     assigned_user_id: int | None = None
-    assigned_intern_pod_id: int | None = None
     priority: str | None = None
     status: str | None = None
     progress_percentage: Decimal = Decimal("0")
@@ -62,7 +58,6 @@ class TaskResponse(BaseModel):
     submission_status: str = "Not submitted"
     project_name: str | None = None
     assigned_user_name: str | None = None
-    assigned_intern_pod_name: str | None = None
     sequence_id: int = 1
     parent_task_id: int | None = None
 

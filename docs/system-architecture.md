@@ -2,7 +2,7 @@
 
 ## 1. Scope
 
-InnerLoop is an internal Digital Lab workspace for users, projects, tasks, intern pods, meetings, meeting rooms, reports, and administration. This document describes the implementation currently present in the repository and the Docker Compose runtime used for local development.
+InnerLoop is an internal Digital Lab workspace for users, projects, tasks, meetings, meeting rooms, reports, and administration. This document describes the implementation currently present in the repository and the Docker Compose runtime used for local development.
 
 ## 2. Runtime Architecture
 
@@ -69,7 +69,7 @@ flowchart TB
 ### Backend
 
 - `app/main.py` creates the FastAPI application, configures CORS, and registers routers.
-- `app/routes/` owns HTTP endpoints for authentication, dashboard, projects, tasks, meetings, intern pods, rooms, reports, users, and administration.
+- `app/routes/` owns HTTP endpoints for authentication, dashboard, projects, tasks, meetings, rooms, reports, users, and administration.
 - `app/services/` owns business operations, database queries, authorization-aware filtering, conflict checks, and transactions.
 - `app/schemas/` validates request payloads and defines response contracts.
 - `app/models/` maps PostgreSQL tables to SQLAlchemy models.
@@ -104,7 +104,7 @@ sequenceDiagram
 - Access tokens are signed JWTs stored in an HttpOnly cookie.
 - The cookie is configured through environment settings such as `AUTH_COOKIE_NAME`, `COOKIE_SECURE`, and `COOKIE_SAMESITE`.
 - Backend authorization is enforced with `get_current_user` and `require_roles`; frontend guards provide navigation and user experience but are not the security boundary.
-- Intern project and task visibility is additionally filtered by backend service logic using direct assignments and intern-pod relationships.
+- Intern project and task visibility is filtered through direct task assignments; projects containing assigned tasks are visible to that intern.
 
 ## 5. Core Data Model
 
@@ -115,10 +115,6 @@ erDiagram
     PROJECTS ||--o{ PROJECT_UPDATES : contains
     PROJECTS ||--o{ TASKS : contains
     USERS ||--o{ TASKS : assigned_to
-    INTERN_PODS ||--o{ TASKS : assigned_to
-    PROJECTS ||--o{ INTERN_PODS : supports
-    INTERN_PODS ||--o{ INTERN_POD_MEMBERS : has
-    USERS ||--o{ INTERN_POD_MEMBERS : joins
     MEETING_ROOMS ||--o{ MEETINGS : hosts
     USERS ||--o{ MEETINGS : creates
     MEETINGS ||--o{ MEETING_ATTENDEES : includes
@@ -129,7 +125,6 @@ erDiagram
     USERS { bigint id PK string email UK string role string status }
     PROJECTS { bigint id PK string project_name string current_status numeric progress_percentage }
     TASKS { bigint id PK bigint project_id FK bigint assigned_user_id FK string status date due_date }
-    INTERN_PODS { bigint id PK bigint assigned_project_id FK bigint mentor_employee_id FK string status }
     MEETING_ROOMS { bigint id PK string room_name string location integer capacity string status }
     MEETINGS { bigint id PK bigint meeting_room_id FK datetime start_datetime datetime end_datetime string status }
 ```

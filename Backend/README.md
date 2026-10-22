@@ -54,8 +54,8 @@ cookie. Project and task queries are restricted to direct/pod assignments for
 interns.
 
 - All roles: `GET /api/dashboard`, `GET /api/projects`, `GET /api/tasks`
-- Employee and management: `GET /api/meetings`, `GET /api/intern-pods`,
-  `GET /api/meeting-rooms`, `GET /api/reports/summary`
+- Employee and management: `GET /api/meetings`, `GET /api/meeting-rooms`,
+  `GET /api/reports/summary`
 - Management only: `GET /api/users`, `GET /api/settings`,
   `GET /api/audit-logs`
 

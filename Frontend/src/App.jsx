@@ -16,7 +16,6 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import InternPods from "./pages/InternPods";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Meetings from "./pages/Meetings";
@@ -30,7 +29,6 @@ const commonItems = {
   tasks: { label: "Tasks", path: "/tasks", icon: CheckSquare },
   meetings: { label: "Meetings", path: "/meetings", icon: CalendarClock },
   calendar: { label: "Calendar", path: "/calendar", icon: CalendarDays },
-  pods: { label: "Intern pods", path: "/intern-pods", icon: Users },
   rooms: { label: "Meeting rooms", path: "/meeting-room", icon: DoorOpen },
   reports: { label: "Reports", path: "/reports", icon: BarChart3 },
   users: { label: "Users", path: "/users", icon: Users },
@@ -209,8 +207,7 @@ export default function App() {
         <Route path="/profile" element={<WrappedPage><Profile /></WrappedPage>} />
         <Route element={<RoleProtectedRoute allowedRoles={["employee", "management"]} />}>
           <Route path="/meetings/*" element={<WrappedPage><Meetings /></WrappedPage>} />
-          <Route path="/intern-pods/*" element={<WrappedPage><InternPods /></WrappedPage>} />
-          <Route path="/reports/*" element={<WrappedPage><ApiPage name="Reports" load={workspaceApi.reportSummary} hiddenFields={["intern_pods"]} /></WrappedPage>} />
+          <Route path="/reports/*" element={<WrappedPage><ApiPage name="Reports" load={workspaceApi.reportSummary} /></WrappedPage>} />
           <Route path="/meeting-room/*" element={<WrappedPage><MeetingRoom /></WrappedPage>} />
         </Route>
         <Route element={<RoleProtectedRoute allowedRoles={["management"]} />}>

@@ -13,7 +13,7 @@ import SmoothReveal from "../components/SmoothReveal";
 
 const COMPLETE = new Set(["completed", "complete", "done", "closed"]);
 const RISK = new Set(["blocked", "delayed", "at risk", "at-risk"]);
-const emptyForm = { project_name: "", project_category: "", project_description: "", project_type: "", responsible_employee_id: "", assigned_intern_pod_id: "", current_status: "Planning", progress_percentage: 0, current_progress_update: "", next_activity: "", target_date: "", blockers: "", related_links: "" };
+const emptyForm = { project_name: "", project_category: "", project_description: "", project_type: "", responsible_employee_id: "", current_status: "Planning", progress_percentage: 0, current_progress_update: "", next_activity: "", target_date: "", blockers: "", related_links: "" };
 
 function normalized(value) {
   return String(value || "").trim().toLowerCase();
@@ -50,7 +50,6 @@ function formFromProject(project, responsibleEmployeeId) {
     ...emptyForm,
     ...project,
     responsible_employee_id: project.responsible_employee_id || "",
-    assigned_intern_pod_id: project.assigned_intern_pod_id || "",
     progress_percentage: Number(project.progress_percentage) || 0,
     target_date: project.target_date || "",
   };
@@ -70,7 +69,6 @@ function ProjectForm({ initialProject, options, responsibleEmployeeId, submittin
       project_description: nullable(form.project_description),
       project_type: nullable(form.project_type),
       responsible_employee_id: form.responsible_employee_id ? Number(form.responsible_employee_id) : null,
-      assigned_intern_pod_id: form.assigned_intern_pod_id ? Number(form.assigned_intern_pod_id) : null,
       progress_percentage: Number(form.progress_percentage) || 0,
       current_progress_update: nullable(form.current_progress_update),
       next_activity: nullable(form.next_activity), target_date: form.target_date || null,
@@ -261,7 +259,7 @@ export default function Projects() {
   const [status, setStatus] = useState("active");
   const [category, setCategory] = useState("all");
   const [formProject, setFormProject] = useState(undefined);
-  const [options, setOptions] = useState({ employees: [], pods: [] });
+  const [options, setOptions] = useState({ employees: [] });
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -313,7 +311,7 @@ export default function Projects() {
     return matchesStatus && matchesCategory && haystack.includes(query.trim().toLowerCase());
   }), [projects, query, status, category]);
 
-  const roleMessage = user?.role === "management" ? "A portfolio-wide view of delivery health, risk, and momentum." : user?.role === "employee" ? "Keep delivery moving with clear progress, targets, and next actions." : "Projects connected to your intern pod and assignments.";
+  const roleMessage = user?.role === "management" ? "A portfolio-wide view of delivery health, risk, and momentum." : user?.role === "employee" ? "Keep delivery moving with clear progress, targets, and next actions." : "Projects connected to your assigned work.";
 
   return <div className="space-y-6">
     <section className="subpage-hero"><div className="relative z-10 max-w-2xl"><div className="inline-flex items-center gap-2 rounded-full bg-[#edfbed] px-3 py-1.5 text-[10px] font-black uppercase tracking-[.15em] text-[#168f18]"><Sparkles size={13} /> {user?.role} portfolio</div><h2 className="mt-4 text-4xl font-black tracking-[-.045em] text-[#10233f] sm:text-5xl">Projects that move the lab forward.</h2><p className="mt-4 max-w-xl text-sm leading-7 text-slate-500">{roleMessage}</p>{canCreate && <button className="primary-button mt-6" onClick={() => setFormProject(null)}><Plus size={17} /> Add Project</button>}</div><div className="subpage-ring" /></section>
