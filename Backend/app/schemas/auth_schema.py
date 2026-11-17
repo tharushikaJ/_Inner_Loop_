@@ -56,6 +56,12 @@ class LoginRequest(BaseModel):
         return str(value).lower()
 
 
+class MicrosoftLoginRequest(BaseModel):
+    id_token: str = Field(min_length=1)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class AuthResponse(BaseModel):
     message: str
     user: UserResponse

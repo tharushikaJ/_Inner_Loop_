@@ -7,11 +7,12 @@ from ..models.user import User
 from ..schemas.auth_schema import (
     AuthResponse,
     LoginRequest,
+    MicrosoftLoginRequest,
     MessageResponse,
     RegisterRequest,
 )
 from ..schemas.user_schema import SupervisorOption, UserResponse
-from ..services.auth_service import authenticate_user, register_user
+from ..services.auth_service import authenticate_microsoft_user, authenticate_user, register_user
 from ..utils.permissions import get_current_user
 from ..utils.security import create_access_token
 
@@ -47,6 +48,22 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         path="/",
     )
     return AuthResponse(message="Login successful.", user=user)
+
+
+@router.post("/microsoft", response_model=AuthResponse)
+def microsoft_login(payload: MicrosoftLoginRequest, response: Response, db: Session = Depends(get_db)):
+    user = authenticate_microsoft_user(db, payload.id_token)
+    token = create_access_token(user.id)
+    response.set_cookie(
+        key=settings.auth_cookie_name,
+        value=token,
+        max_age=settings.access_token_expire_minutes * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        path="/",
+    )
+    return AuthResponse(message="Microsoft sign-in successful.", user=user)
 
 
 @router.get("/me", response_model=UserResponse)

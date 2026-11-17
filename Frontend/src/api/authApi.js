@@ -44,6 +44,7 @@ export async function apiRequest(path, options = {}) {
 
 export const authApi = {
   login: (credentials) => apiRequest("/auth/login", { method: "POST", body: JSON.stringify(credentials) }),
+  microsoftLogin: (idToken) => apiRequest("/auth/microsoft", { method: "POST", body: JSON.stringify({ id_token: idToken }) }),
   register: (details) => apiRequest("/auth/register", { method: "POST", body: JSON.stringify(details) }),
   supervisors: () => apiRequest("/auth/supervisors"),
   me: () => apiRequest("/auth/me"),

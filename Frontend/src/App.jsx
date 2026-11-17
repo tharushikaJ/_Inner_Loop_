@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
+import MicrosoftCallback from "./pages/MicrosoftCallback";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -197,6 +198,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/auth/callback" element={<MicrosoftCallback />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<WrappedPage><Dashboard /></WrappedPage>} />

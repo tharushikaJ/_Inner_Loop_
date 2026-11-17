@@ -91,7 +91,7 @@ export default function Register() {
     }
   };
 
-  const employeeFields = form.role === "employee" || form.role === "management";
+  const employeeFields = form.role === "management";
   return (
     <main className="auth-page py-8 sm:py-12">
       <div className="login-loop login-loop-one" aria-hidden="true" />
@@ -105,7 +105,7 @@ export default function Register() {
         </div>
         {apiError && <div className="auth-error" role="alert">{apiError}</div>}
         <form className="mt-6 grid gap-4 sm:grid-cols-2" onSubmit={submit} noValidate>
-          <label className="field-label sm:col-span-2">Role<select name="role" value={form.role} onChange={update} className="field-input" aria-invalid={Boolean(errors.role)}><option value="intern">Intern</option><option value="employee">Employee</option><option value="management">Management</option></select><FieldError message={errors.role} /></label>
+          <label className="field-label sm:col-span-2">Role<select name="role" value={form.role} onChange={update} className="field-input" aria-invalid={Boolean(errors.role)}><option value="intern">Intern</option><option value="management">Management</option></select><FieldError message={errors.role} /></label>
           {form.role === "intern" && <label className="field-label sm:col-span-2">Assigned Supervisor<select name="assigned_supervisor_id" value={form.assigned_supervisor_id} onChange={update} className="field-input" disabled={supervisorsLoading || Boolean(supervisorsError)}><option value="">{supervisorsLoading ? "Loading supervisors…" : "Not Assigned"}</option>{supervisors.map((supervisor) => <option key={supervisor.id} value={supervisor.id}>{supervisor.name}</option>)}</select>{!supervisorsLoading && !supervisorsError && supervisors.length === 0 && <span className="mt-1.5 block text-[11px] font-semibold text-slate-400">No active employees are available.</span>}{supervisorsError && <span className="mt-1.5 flex items-center justify-between gap-3 text-[11px] font-semibold text-red-600" role="alert"><span>{supervisorsError}</span><button type="button" onClick={() => setSupervisorReload((value) => value + 1)} className="inline-flex items-center gap-1 text-[#075fae]"><RefreshCw size={12} /> Retry</button></span>}</label>}
           <label className="field-label sm:col-span-2">Full Name<input name="name" value={form.name} onChange={update} className="field-input" autoComplete="name" placeholder="Your full name" aria-invalid={Boolean(errors.name)} /><FieldError message={errors.name} /></label>
           <label className="field-label sm:col-span-2">Email<input name="email" type="email" value={form.email} onChange={update} className="field-input" autoComplete="email" placeholder="name@example.com" aria-invalid={Boolean(errors.email)} /><FieldError message={errors.email} /></label>

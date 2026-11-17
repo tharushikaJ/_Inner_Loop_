@@ -1,12 +1,57 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { authApi } from "../api/authApi";
+import { handleMicrosoftRedirect } from "../utils/microsoftAuth";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+
+  const clearAuthError = useCallback(() => {
+    setAuthError("");
+  }, []);
+
+  useEffect(() => {
+    const initialize = async () => {
+      // --- Microsoft OAuth redirect handling ---
+      // handleRedirectPromise() is called on every app load.
+      // If returning from Microsoft loginRedirect, it processes the response.
+      try {
+        const idToken = await handleMicrosoftRedirect();
+        if (idToken) {
+          try {
+            const result = await authApi.microsoftLogin(idToken);
+            setUser(result.user);
+            setAuthError("");
+          } catch (error) {
+            setUser(null);
+            setAuthError(error.message || "Microsoft sign-in failed.");
+          } finally {
+            setLoading(false);
+          }
+          return;
+        }
+      } catch (error) {
+        // MSAL redirect processing failed
+        setAuthError(error.message || "Failed to process Microsoft sign-in.");
+      }
+
+      // --- Normal session restoration via HttpOnly cookie ---
+      try {
+        const currentUser = await authApi.me();
+        setUser(currentUser);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialize();
+  }, []);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -16,18 +61,20 @@ export function AuthProvider({ children }) {
     } catch {
       setUser(null);
       return null;
-    } finally {
-      setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
 
   const login = useCallback(async (credentials) => {
     const result = await authApi.login(credentials);
     setUser(result.user);
+    setAuthError("");
+    return result.user;
+  }, []);
+
+  const loginMicrosoft = useCallback(async (idToken) => {
+    const result = await authApi.microsoftLogin(idToken);
+    setUser(result.user);
+    setAuthError("");
     return result.user;
   }, []);
 
@@ -38,18 +85,25 @@ export function AuthProvider({ children }) {
       await authApi.logout();
     } finally {
       setUser(null);
+      setAuthError("");
     }
   }, []);
 
-  const value = useMemo(() => ({
-    user,
-    loading,
-    isAuthenticated: Boolean(user),
-    login,
-    register,
-    logout,
-    refreshUser,
-  }), [user, loading, login, register, logout, refreshUser]);
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      authError,
+      clearAuthError,
+      isAuthenticated: Boolean(user),
+      login,
+      loginMicrosoft,
+      register,
+      logout,
+      refreshUser,
+    }),
+    [user, loading, authError, clearAuthError, login, loginMicrosoft, register, logout, refreshUser],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

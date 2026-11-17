@@ -17,6 +17,8 @@ From the repository root, create `Backend/.env` with the following values:
 DATABASE_URL=postgresql://innerloop_user:innerloop_password@postgres:5432/innerloop_db
 JWT_SECRET=change-me
 JWT_ALGORITHM=HS256
+MICROSOFT_TENANT_ID=534253fc-dfb6-462f-b5ca-cbe81939f5ee
+MICROSOFT_CLIENT_ID=b40f5c7e-12d1-49e4-88c5-d2703449838f
 ```
 
 For shared or production environments, replace `JWT_SECRET` with a long, random secret and do not commit the `.env` file.
@@ -33,6 +35,39 @@ DATABASE_URL=postgresql://innerloop_user:innerloop_password@localhost:5432/inner
 ```
 
 Restore `postgres:5432` before starting the backend with Docker Compose.
+
+### Microsoft sign-in
+
+The login page includes Microsoft Entra ID sign-in for the configured SLT tenant.
+The Microsoft account must belong to the configured SLT tenant and already exist
+as an active InnerLoop user; roles are still managed by InnerLoop and are not
+taken from Microsoft claims.
+
+In the Entra app registration, configure the application as a **Single-page
+application** and add these redirect URIs:
+
+- `https://innerloop.raccoon-ai.io`
+- `http://localhost:5173` for local Vite development
+- `http://localhost:3000` for the local Docker frontend
+
+Set the matching frontend values in `Frontend/.env`:
+
+```env
+VITE_MICROSOFT_TENANT_ID=534253fc-dfb6-462f-b5ca-cbe81939f5ee
+VITE_MICROSOFT_CLIENT_ID=b40f5c7e-12d1-49e4-88c5-d2703449838f
+```
+
+The app defaults its Microsoft redirect URI to the page's current origin. This
+works for both Vite (`http://localhost:5173`) and the Docker frontend
+(`http://localhost:3000`) without changing the file. Set
+`VITE_MICROSOFT_REDIRECT_URI` only when an explicit redirect URI is required,
+and ensure that exact URI is registered in Entra ID.
+
+The frontend also defaults API requests to `/api`, which works through the Vite
+and nginx proxies. Set `VITE_API_BASE_URL` only when the API is deliberately
+hosted on a separate origin. For that setup, include the deployed frontend
+origin in `CORS_ORIGINS` in `Backend/.env`. No Microsoft client secret is
+required for this SPA flow.
 
 ### 2. Build and start the services
 

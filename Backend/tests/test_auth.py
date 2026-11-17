@@ -7,6 +7,9 @@ from app.database import Base, get_db
 from app.main import app
 from app.models.project import Project
 from app.models.task import Task
+from app.models.user import User
+from app.services import auth_service
+from app.utils.security import create_access_token
 
 
 engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
@@ -46,7 +49,7 @@ def test_project_and_task_apis_support_direct_assignments():
         "role": "employee", "designation": "Engineer", "department": "Digital Lab",
     })
     assert employee.status_code == 201
-    assert login("employee@example.com").status_code == 200
+    client.cookies.set("innerloop_access_token", create_access_token(employee.json()["user"]["id"]))
 
     project = client.post("/api/projects", json={"project_name": "Delivery Project"})
     assert project.status_code == 201
@@ -54,6 +57,47 @@ def test_project_and_task_apis_support_direct_assignments():
     task = client.post("/api/tasks", json={"task_title": "Delivery Task", "project_id": project.json()["id"]})
     assert task.status_code == 201
     assert project.json()["id"] == task.json()["project_id"]
+
+
+def test_microsoft_employee_is_created_on_first_sign_in(monkeypatch):
+    monkeypatch.setattr(
+        auth_service,
+        "decode_microsoft_id_token",
+        lambda token: {
+            "tid": "tenant-id",
+            "aud": "client-id",
+            "preferred_username": "new.employee@organization.example",
+            "name": "New Employee",
+        },
+    )
+
+    response = client.post("/api/auth/microsoft", json={"id_token": "test-token"})
+
+    assert response.status_code == 200
+    assert response.json()["user"]["role"] == "employee"
+    with TestingSession() as db:
+        user = db.query(User).filter(User.email == "new.employee@organization.example").one()
+        assert user.role == "employee"
+
+
+def test_intern_and_management_use_password_login_but_employees_use_sso():
+    intern = register({
+        "name": "Ishan Intern", "email": "intern@example.com", "password": "Password123",
+        "role": "intern",
+    })
+    management = register({
+        "name": "Maya Manager", "email": "management@example.com", "password": "Password123",
+        "role": "management", "designation": "Director", "department": "Digital Lab",
+    })
+    employee = register({
+        "name": "Esha Employee", "email": "employee@example.com", "password": "Password123",
+        "role": "employee", "designation": "Engineer", "department": "Digital Lab",
+    })
+
+    assert intern.status_code == management.status_code == employee.status_code == 201
+    assert login("intern@example.com").status_code == 200
+    assert login("management@example.com").status_code == 200
+    assert login("employee@example.com").status_code == 403
 
 
 def test_intern_sees_only_directly_assigned_tasks_and_no_projects():
@@ -74,6 +118,6 @@ def test_intern_sees_only_directly_assigned_tasks_and_no_projects():
         ])
         db.commit()
 
-    assert login("intern@example.com").status_code == 200
+    client.cookies.set("innerloop_access_token", create_access_token(intern.json()["user"]["id"]))
     assert client.get("/api/projects").json() == []
     assert [task["task_title"] for task in client.get("/api/tasks").json()] == ["Assigned Task"]
