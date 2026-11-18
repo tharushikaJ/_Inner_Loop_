@@ -104,7 +104,7 @@ sequenceDiagram
 - Access tokens are signed JWTs stored in an HttpOnly cookie.
 - The cookie is configured through environment settings such as `AUTH_COOKIE_NAME`, `COOKIE_SECURE`, and `COOKIE_SAMESITE`.
 - Backend authorization is enforced with `get_current_user` and `require_roles`; frontend guards provide navigation and user experience but are not the security boundary.
-- Intern project and task visibility is filtered by direct task assignments.
+- Intern project and task visibility is filtered through direct task assignments; projects containing assigned tasks are visible to that intern.
 
 ## 5. Core Data Model
 

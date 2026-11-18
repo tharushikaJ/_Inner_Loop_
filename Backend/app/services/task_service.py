@@ -8,6 +8,7 @@ from ..models.task import Task
 from ..models.project import Project
 from ..models.user import User
 from ..schemas.task_schema import TaskCreate, TaskSubmissionUpdate, TaskUpdate
+from .project_service import intern_project_ids
 
 
 DONE_STATUSES = {"completed", "complete", "done", "closed", "approved"}
@@ -35,7 +36,11 @@ def tasks_for_user(db: Session, user: User) -> list[Task]:
         responsible_project_ids = db.query(Project.id).filter(Project.responsible_employee_id == user.id)
         query = query.filter(or_(Task.assigned_user_id == user.id, Task.project_id.in_(responsible_project_ids)))
     elif user.role == "intern":
-        query = query.filter(Task.assigned_user_id == user.id)
+        project_ids = intern_project_ids(db, user.id)
+        conditions = [Task.assigned_user_id == user.id]
+        if project_ids:
+            conditions.append(Task.project_id.in_(project_ids))
+        query = query.filter(or_(*conditions))
     return query.order_by(Task.sequence_id.asc().nullslast(), Task.due_date.asc().nullslast(), Task.id.asc()).all()
 
 
@@ -108,7 +113,7 @@ def create_task(
         db.commit()
     except IntegrityError as error:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more selected project or assignee records do not exist.") from error
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected project or assignee does not exist.") from error
     db.refresh(task)
     return task_data(db, task)
 
@@ -164,7 +169,7 @@ def update_task(db: Session, task_id: int, user: User, payload: TaskUpdate) -> d
         db.commit()
     except IntegrityError as error:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more selected project or assignee records do not exist.") from error
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The selected project or assignee does not exist.") from error
     db.refresh(task)
     return task_data(db, task)
 

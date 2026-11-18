@@ -40,5 +40,5 @@ def update_meeting(meeting_id: int, payload: MeetingUpdate, user=Depends(employe
 
 
 @router.delete("/{meeting_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_meeting(meeting_id: int, user=Depends(employee_only), db: Session = Depends(get_db)):
+def delete_meeting(meeting_id: int, user=Depends(employee_or_management), db: Session = Depends(get_db)):
     meeting_service.delete_meeting(db, meeting_id, user)

@@ -176,7 +176,6 @@ function TaskModal({ options, currentProjectId, projects, tasks, submitting, def
 
   function save(event) {
     event.preventDefault();
-    const chosenProject = projects?.find((p) => Number(p.id) === Number(form.project_id));
     onSubmit({
       ...form,
       task_title: form.task_title.trim(),

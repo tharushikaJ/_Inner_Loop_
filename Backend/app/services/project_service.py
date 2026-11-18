@@ -10,12 +10,25 @@ from ..models.user import User
 from ..schemas.project_schema import ProjectCreate, ProjectUpdate
 
 
+def intern_project_ids(db: Session, user_id: int) -> list[int]:
+    return [
+        row[0]
+        for row in db.query(Task.project_id)
+        .filter(Task.assigned_user_id == user_id, Task.project_id.is_not(None))
+        .distinct()
+        .all()
+    ]
+
+
 def projects_for_user(db: Session, user: User) -> list[Project]:
     query = db.query(Project)
     if user.role == "employee":
         query = query.filter(Project.responsible_employee_id == user.id)
     elif user.role == "intern":
-        return []
+        project_ids = intern_project_ids(db, user.id)
+        if not project_ids:
+            return []
+        query = query.filter(Project.id.in_(project_ids))
     return query.order_by(Project.updated_at.desc(), Project.id.desc()).all()
 
 

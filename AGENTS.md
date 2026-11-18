@@ -19,7 +19,7 @@ Do not infer functionality from filenames alone. Much of the repository is plann
 - `Frontend/src/main.jsx` mounts `App` inside `BrowserRouter` and `AuthProvider`.
 - Authentication and RBAC are implemented in `Frontend/src/api/`, `context/AuthContext.jsx`, `components/ProtectedRoute.jsx`, `components/RoleProtectedRoute.jsx`, and the login/register/profile/workspace routes.
 - The backend implements `GET /health`, the `/api/auth` flow, role-aware dashboard/project/task APIs, employee/management operational APIs, and management-only administration APIs.
-- Authentication uses the existing PostgreSQL `users` table, bcrypt password hashes, JWTs in HttpOnly cookies, and environment-configured CORS. RBAC resolves the current user from that cookie and filters intern projects/tasks through direct assignments.
+- Authentication uses the existing PostgreSQL `users` table, bcrypt password hashes, JWTs in HttpOnly cookies, and environment-configured CORS. RBAC resolves the current user from that cookie and filters intern projects/tasks in SQL through direct task assignments.
 - `Databases/schema.sql` is the only complete database definition. `Databases/seed/seed.sql` is a placeholder.
 - Backend authentication and RBAC behavior is covered by the pytest suite in `Backend/tests/`. There is no configured frontend linter at present.
 

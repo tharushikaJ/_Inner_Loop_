@@ -60,15 +60,9 @@ def register_user(db: Session, payload: RegisterRequest) -> User:
 
 def authenticate_user(db: Session, payload: LoginRequest) -> User:
     user = db.query(User).filter(User.email == payload.email).first()
-    if user and user.role == "employee":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Employees must sign in with their organization Microsoft account.",
-        )
     valid = (
         user is not None
         and user.status == "active"
-        and user.role in {"intern", "management"}
         and verify_password(payload.password, user.password_hash)
     )
     if not valid:

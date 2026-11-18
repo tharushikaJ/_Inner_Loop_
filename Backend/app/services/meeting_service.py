@@ -148,6 +148,8 @@ def update_meeting(db: Session, meeting_id: int, payload: MeetingUpdate, user: U
 def delete_meeting(db: Session, meeting_id: int, user: User) -> None:
 	meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
 	if not meeting:
+		if user.role == "management":
+			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Management has read-only meeting access")
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meeting not found")
 	if not _can_manage_meeting(meeting, user):
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete meetings you created")

@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Sparkles,
   TrendingUp,
-  Users,
 } from "lucide-react";
 
 import { getDashboard } from "../api/dashboardApi";
