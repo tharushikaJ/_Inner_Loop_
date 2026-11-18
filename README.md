@@ -15,8 +15,8 @@ From the repository root, create `Backend/.env` with the following values:
 
 ```env
 DATABASE_URL=
-JWT_SECRET=change-me
-JWT_ALGORITHM=HS256
+JWT_SECRET=
+JWT_ALGORITHM=
 MICROSOFT_TENANT_ID=
 MICROSOFT_CLIENT_ID=
 ```
