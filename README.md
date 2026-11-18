@@ -14,11 +14,11 @@ Internal Project, Meeting, and Resource Management Platform for Digital Lab.
 From the repository root, create `Backend/.env` with the following values:
 
 ```env
-DATABASE_URL=postgresql://innerloop_user:innerloop_password@postgres:5432/innerloop_db
+DATABASE_URL=
 JWT_SECRET=change-me
 JWT_ALGORITHM=HS256
-MICROSOFT_TENANT_ID=534253fc-dfb6-462f-b5ca-cbe81939f5ee
-MICROSOFT_CLIENT_ID=b40f5c7e-12d1-49e4-88c5-d2703449838f
+MICROSOFT_TENANT_ID=
+MICROSOFT_CLIENT_ID=
 ```
 
 For shared or production environments, replace `JWT_SECRET` with a long, random secret and do not commit the `.env` file.
@@ -31,7 +31,7 @@ The database host depends on where the backend runs:
 For a direct local run, change only the database host in `Backend/.env` to:
 
 ```env
-DATABASE_URL=postgresql://innerloop_user:innerloop_password@localhost:5432/innerloop_db
+DATABASE_URL=
 ```
 
 Restore `postgres:5432` before starting the backend with Docker Compose.
@@ -53,8 +53,8 @@ application** and add these redirect URIs:
 Set the matching frontend values in `Frontend/.env`:
 
 ```env
-VITE_MICROSOFT_TENANT_ID=534253fc-dfb6-462f-b5ca-cbe81939f5ee
-VITE_MICROSOFT_CLIENT_ID=b40f5c7e-12d1-49e4-88c5-d2703449838f
+VITE_MICROSOFT_TENANT_ID=
+VITE_MICROSOFT_CLIENT_ID=
 ```
 
 The app defaults its Microsoft redirect URI to the page's current origin. This
