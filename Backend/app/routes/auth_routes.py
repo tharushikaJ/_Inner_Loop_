@@ -52,7 +52,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
 
 @router.post("/microsoft", response_model=AuthResponse)
 def microsoft_login(payload: MicrosoftLoginRequest, response: Response, db: Session = Depends(get_db)):
-    user = authenticate_microsoft_user(db, payload.id_token)
+    user = authenticate_microsoft_user(db, payload.id_token, payload.access_token)
     token = create_access_token(user.id)
     response.set_cookie(
         key=settings.auth_cookie_name,

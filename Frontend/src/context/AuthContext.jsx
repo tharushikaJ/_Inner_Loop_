@@ -20,10 +20,10 @@ export function AuthProvider({ children }) {
       // handleRedirectPromise() is called on every app load.
       // If returning from Microsoft loginRedirect, it processes the response.
       try {
-        const idToken = await handleMicrosoftRedirect();
-        if (idToken) {
+        const microsoftTokens = await handleMicrosoftRedirect();
+        if (microsoftTokens) {
           try {
-            const result = await authApi.microsoftLogin(idToken);
+            const result = await authApi.microsoftLogin(microsoftTokens);
             setUser(result.user);
             setAuthError("");
           } catch (error) {
@@ -71,8 +71,8 @@ export function AuthProvider({ children }) {
     return result.user;
   }, []);
 
-  const loginMicrosoft = useCallback(async (idToken) => {
-    const result = await authApi.microsoftLogin(idToken);
+  const loginMicrosoft = useCallback(async (microsoftTokens) => {
+    const result = await authApi.microsoftLogin(microsoftTokens);
     setUser(result.user);
     setAuthError("");
     return result.user;

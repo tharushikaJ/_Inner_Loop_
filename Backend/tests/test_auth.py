@@ -13,6 +13,7 @@ from app.models.project import Project
 from app.models.room import MeetingRoom
 from app.models.task import Task
 from app.models.user import User
+from app.services import auth_service
 
 
 engine = create_engine(
@@ -33,6 +34,7 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
+_DEFAULT_JOB_TITLE = object()
 
 
 @pytest.fixture(autouse=True)
@@ -49,10 +51,38 @@ def register(payload):
 
 def login(email):
     client.cookies.clear()
+    with TestingSession() as db:
+        user = db.query(User).filter(User.email == email).first()
+    if user and user.role == "management":
+        return microsoft_login(email)
     return client.post("/api/auth/login", json={
         "email": email,
         "password": "Password123",
     })
+
+
+def microsoft_login(email, job_title=_DEFAULT_JOB_TITLE, profile_email=None, **profile_fields):
+    client.cookies.clear()
+    original_decoder = auth_service.decode_microsoft_id_token
+    original_profile = auth_service.get_microsoft_profile
+    original_domain = auth_service.settings.microsoft_email_domain
+    try:
+        auth_service.decode_microsoft_id_token = lambda _token: {"preferred_username": email}
+        if job_title is _DEFAULT_JOB_TITLE:
+            with TestingSession() as db:
+                user = db.query(User).filter(User.email == email).first()
+                job_title = "General Manager" if user and user.role == "management" else "Software Engineer"
+        auth_service.get_microsoft_profile = lambda _token: {
+            "userPrincipalName": profile_email or email,
+            "jobTitle": job_title,
+            **profile_fields,
+        }
+        auth_service.settings.microsoft_email_domain = ""
+        return client.post("/api/auth/microsoft", json={"id_token": "test-token", "access_token": "graph-token"})
+    finally:
+        auth_service.decode_microsoft_id_token = original_decoder
+        auth_service.get_microsoft_profile = original_profile
+        auth_service.settings.microsoft_email_domain = original_domain
 
 
 def test_registers_all_supported_roles_without_exposing_password_hash():
@@ -150,6 +180,83 @@ def test_login_me_logout_and_generic_login_failures():
 
     assert client.post("/api/auth/logout").status_code == 200
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_management_password_login_is_rejected_but_microsoft_login_is_allowed():
+    register({
+        "name": "Manoj Manager",
+        "email": "management@example.com",
+        "password": "Password123",
+        "role": "management",
+        "designation": "Manager",
+        "department": "Digital Lab",
+    })
+
+    password_login = client.post("/api/auth/login", json={
+        "email": "management@example.com",
+        "password": "Password123",
+    })
+    assert password_login.status_code == 403
+    assert password_login.json()["detail"] == "Management accounts must sign in with Microsoft."
+
+    microsoft = microsoft_login("management@example.com")
+    assert microsoft.status_code == 200
+    assert microsoft.json()["user"]["role"] == "management"
+
+
+@pytest.mark.parametrize(
+    ("job_title", "expected_role"),
+    [
+        ("Deputy General Manager", "management"),
+        ("General Manager", "management"),
+        ("Chief Executive Officer", "management"),
+        ("Chief Technology Officer", "management"),
+        ("Software Engineer", "employee"),
+        ("Business Analyst", "employee"),
+        ("Mischief Analyst", "employee"),
+        (None, "employee"),
+        ("cHiEf of Staff", "management"),
+    ],
+)
+def test_microsoft_job_title_assigns_role_for_new_non_intern_users(job_title, expected_role):
+    response = microsoft_login("new-user@example.com", job_title=job_title)
+
+    assert response.status_code == 200
+    assert response.json()["user"]["role"] == expected_role
+    assert response.json()["user"]["designation"] == job_title
+
+
+def test_microsoft_login_refreshes_existing_employee_and_management_roles():
+    employee = register({
+        "name": "Employee", "email": "employee@example.com", "password": "Password123",
+        "role": "employee", "designation": "Engineer", "department": "Digital Lab",
+    })
+    manager = register({
+        "name": "Manager", "email": "manager@example.com", "password": "Password123",
+        "role": "management", "designation": "General Manager", "department": "Digital Lab",
+    })
+    assert employee.status_code == manager.status_code == 201
+
+    promoted = microsoft_login("employee@example.com", job_title="General Manager")
+    demoted = microsoft_login("manager@example.com", job_title="Software Engineer")
+
+    assert promoted.json()["user"]["role"] == "management"
+    assert demoted.json()["user"]["role"] == "employee"
+
+
+def test_microsoft_login_never_changes_an_intern_role_or_uses_unrelated_fields():
+    assert register({
+        "name": "Intern", "email": "intern@example.com", "password": "Password123", "role": "intern",
+    }).status_code == 201
+
+    intern_response = microsoft_login("intern@example.com", job_title="Chief Intern")
+    unrelated_chief = microsoft_login("employee@example.com", job_title="Software Engineer", displayName="Chief Executive")
+
+    assert intern_response.status_code == 403
+    with TestingSession() as db:
+        assert db.query(User).filter(User.email == "intern@example.com").one().role == "intern"
+    assert unrelated_chief.status_code == 200
+    assert unrelated_chief.json()["user"]["role"] == "employee"
 
 
 def test_inactive_user_cannot_login():

@@ -37,7 +37,7 @@ export async function initializeMsal() {
   await _initPromise;
 }
 
-const LOGIN_SCOPES = ["openid", "profile", "email"];
+const LOGIN_SCOPES = ["openid", "profile", "email", "User.Read"];
 
 /**
  * Kick off the redirect-based Microsoft sign-in.
@@ -56,7 +56,7 @@ export async function startMicrosoftLogin() {
 
 /**
  * Handle the redirect response after Microsoft sends the user back to
- * /auth/callback. Returns the id_token string, or null if there was
+ * /auth/callback. Returns the identity and Graph access tokens, or null if there was
  * no pending redirect to handle.
  */
 export async function handleMicrosoftRedirect() {
@@ -70,8 +70,10 @@ export async function handleMicrosoftRedirect() {
     try {
       const result = await msalApplication.handleRedirectPromise();
       if (!result) return null;
-      if (!result.idToken) throw new Error("Microsoft did not return an ID token.");
-      return result.idToken;
+      if (!result.idToken || !result.accessToken) {
+        throw new Error("Microsoft did not return the profile access required to sign in.");
+      }
+      return { idToken: result.idToken, accessToken: result.accessToken };
     } catch (err) {
       console.error("[MSAL] handleRedirectPromise error:", err);
       throw err;

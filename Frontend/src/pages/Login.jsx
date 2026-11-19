@@ -100,6 +100,7 @@ export default function Login() {
         <button type="button" onClick={submitMicrosoft} disabled={submitting || microsoftSubmitting || authLoading} className="secondary-button w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">
           {microsoftSubmitting ? <><LoaderCircle size={18} className="animate-spin" /> Connecting to Microsoft…</> : <><MicrosoftLogo /> Continue with Microsoft</>}
         </button>
+        <p className="mt-3 text-center text-xs font-medium text-slate-500">Employees and management sign in with Microsoft.</p>
         <p className="mt-7 text-center text-sm text-slate-500">New to InnerLoop? <Link to="/register" className="font-extrabold text-[#075fae] hover:underline">Register</Link></p>
       </section>
     </main>

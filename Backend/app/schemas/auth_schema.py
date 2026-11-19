@@ -58,6 +58,7 @@ class LoginRequest(BaseModel):
 
 class MicrosoftLoginRequest(BaseModel):
     id_token: str = Field(min_length=1)
+    access_token: str = Field(min_length=1)
 
     model_config = ConfigDict(extra="forbid")
 
