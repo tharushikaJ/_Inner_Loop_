@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 104 112" role="img" aria-label="InnerLoop logo">
+  <title>InnerLoop logo</title>
+  <g fill="none" stroke-linecap="round" stroke-width="8">
+    <path d="M42 18 17 62" stroke="#1fa8e0" />
+    <path d="M43 55 18 99" stroke="#075fae" />
+    <path d="M86 48 61 92" stroke="#20b51d" />
+  </g>
+  <circle cx="57" cy="55" r="4" fill="#20b51d" />
+</svg>

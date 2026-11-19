@@ -228,6 +228,34 @@ def test_intern_data_is_sql_scoped_and_privileged_routes_are_forbidden():
         assert client.get(path).status_code == 403
 
 
+def test_dashboard_serializes_upcoming_meetings():
+    management = register({
+        "name": "Maya Manager",
+        "email": "manager@example.com",
+        "password": "Password123",
+        "role": "management",
+        "designation": "Manager",
+        "department": "Digital Lab",
+    })
+    manager_id = management.json()["user"]["id"]
+
+    with TestingSession() as db:
+        db.add(Meeting(
+            meeting_title="Dashboard planning",
+            start_datetime=datetime(2032, 1, 10, 9, 0),
+            end_datetime=datetime(2032, 1, 10, 10, 0),
+            created_by=manager_id,
+        ))
+        db.commit()
+
+    assert login("manager@example.com").status_code == 200
+    dashboard = client.get("/api/dashboard")
+
+    assert dashboard.status_code == 200
+    assert dashboard.json()["metrics"]["upcoming_meetings"] == 1
+    assert dashboard.json()["meetings"][0]["meeting_title"] == "Dashboard planning"
+
+
 def test_intern_calendar_only_returns_meetings_where_they_are_an_attendee():
     seed_rbac_workspace()
     with TestingSession() as db:

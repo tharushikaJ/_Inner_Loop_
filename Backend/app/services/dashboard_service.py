@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..models.meeting import Meeting, MeetingAttendee
 from ..models.user import User
+from .meeting_service import meeting_data
 from .project_service import calculated_project_progress, project_data, projects_for_user
 from .task_service import task_data, tasks_for_user
 
@@ -41,7 +42,10 @@ def dashboard_for_user(db: Session, user: User) -> dict:
             attending_ids = db.query(MeetingAttendee.meeting_id).filter(MeetingAttendee.user_id == user.id)
             meeting_query = meeting_query.filter(or_(Meeting.created_by == user.id, Meeting.id.in_(attending_ids)))
         metrics["upcoming_meetings"] = meeting_query.count()
-        meetings = meeting_query.order_by(Meeting.start_datetime.asc()).limit(5).all()
+        meetings = [
+            meeting_data(db, meeting, user)
+            for meeting in meeting_query.order_by(Meeting.start_datetime.asc()).limit(5).all()
+        ]
 
     if user.role == "management":
         metrics.update({

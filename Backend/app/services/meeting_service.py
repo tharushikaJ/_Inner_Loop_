@@ -9,7 +9,7 @@ from ..models.user import User
 from ..schemas.meeting_schema import MeetingCreate, MeetingUpdate
 
 
-def _meeting_data(db: Session, meeting: Meeting, current_user: User | None = None) -> dict:
+def meeting_data(db: Session, meeting: Meeting, current_user: User | None = None) -> dict:
 	attendees = db.query(MeetingAttendee).filter(MeetingAttendee.meeting_id == meeting.id).all()
 	current_attendee = next((row for row in attendees if current_user and row.user_id == current_user.id), None)
 	return {
@@ -34,7 +34,7 @@ def list_meetings(db: Session, user: User) -> list[dict]:
 	if user.role == "intern":
 		query = query.join(MeetingAttendee, MeetingAttendee.meeting_id == Meeting.id).filter(MeetingAttendee.user_id == user.id)
 	meetings = query.order_by(Meeting.start_datetime.asc()).all()
-	return [_meeting_data(db, meeting, user) for meeting in meetings]
+	return [meeting_data(db, meeting, user) for meeting in meetings]
 
 
 def meeting_options(db: Session, user: User) -> dict:
@@ -84,7 +84,7 @@ def update_attendance(db: Session, meeting_id: int, user: User, attendance_statu
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not invited to this meeting")
 	attendee.attendance_status = attendance_status
 	db.commit()
-	return _meeting_data(db, meeting, user)
+	return meeting_data(db, meeting, user)
 
 
 def _ensure_room_available(db: Session, room_id: int | None, start_datetime, end_datetime, exclude_meeting_id: int | None = None) -> None:
@@ -119,7 +119,7 @@ def create_meeting(db: Session, payload: MeetingCreate, created_by: int) -> dict
 		db.rollback()
 		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more selected attendees, projects, or rooms do not exist") from error
 	db.refresh(meeting)
-	return _meeting_data(db, meeting)
+	return meeting_data(db, meeting)
 
 
 def _can_manage_meeting(meeting: Meeting, user: User) -> bool:
@@ -142,7 +142,7 @@ def update_meeting(db: Session, meeting_id: int, payload: MeetingUpdate, user: U
 		db.rollback()
 		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="One or more selected attendees, projects, or rooms do not exist") from error
 	db.refresh(meeting)
-	return _meeting_data(db, meeting)
+	return meeting_data(db, meeting)
 
 
 def delete_meeting(db: Session, meeting_id: int, user: User) -> None:
